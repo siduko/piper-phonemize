@@ -114,21 +114,73 @@ if(NOT DEFINED ESPEAK_NG_DIR)
     set(ESPEAK_NG_DIR "${CMAKE_CURRENT_BINARY_DIR}/ei")
 
     include(ExternalProject)
+    
+    # Prepare CMAKE_ARGS for cross-compilation
+    set(ESPEAK_NG_CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX:PATH=${ESPEAK_NG_DIR}
+        -DUSE_ASYNC:BOOL=OFF
+        -DBUILD_SHARED_LIBS:BOOL=ON
+        -DUSE_MBROLA:BOOL=OFF
+        -DUSE_LIBSONIC:BOOL=OFF
+        -DUSE_LIBPCAUDIO:BOOL=OFF
+        -DUSE_KLATT:BOOL=OFF
+        -DUSE_SPEECHPLAYER:BOOL=OFF
+        -DEXTRA_cmn:BOOL=ON
+        -DEXTRA_ru:BOOL=ON
+        -DCMAKE_C_FLAGS="-D_FILE_OFFSET_BITS=64"
+    )
+    
+    # Add cross-compilation settings if applicable
+    if(CMAKE_TOOLCHAIN_FILE)
+        list(APPEND ESPEAK_NG_CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
+    endif()
+    
+    # Propagate system-specific variables
+    if(CMAKE_SYSTEM_NAME)
+        list(APPEND ESPEAK_NG_CMAKE_ARGS -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME})
+    endif()
+    
+    if(CMAKE_SYSTEM_PROCESSOR)
+        list(APPEND ESPEAK_NG_CMAKE_ARGS -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR})
+    endif()
+    
+    if(CMAKE_C_COMPILER)
+        list(APPEND ESPEAK_NG_CMAKE_ARGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER})
+    endif()
+    
+    if(CMAKE_CXX_COMPILER)
+        list(APPEND ESPEAK_NG_CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER})
+    endif()
+    
+    if(ANDROID)
+        message(STATUS "Configuring espeak-ng for Android:")
+        message(STATUS "  ANDROID_ABI: ${ANDROID_ABI}")
+        message(STATUS "  ANDROID_PLATFORM: ${ANDROID_PLATFORM}")
+        message(STATUS "  CMAKE_ANDROID_NDK: ${CMAKE_ANDROID_NDK}")
+        message(STATUS "  CMAKE_C_COMPILER: ${CMAKE_C_COMPILER}")
+        message(STATUS "  CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
+        
+        list(APPEND ESPEAK_NG_CMAKE_ARGS 
+            -DANDROID_ABI=${ANDROID_ABI}
+            -DANDROID_PLATFORM=${ANDROID_PLATFORM}
+            -DCMAKE_ANDROID_NDK=${CMAKE_ANDROID_NDK}
+            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        )
+    endif()
+    
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        list(APPEND ESPEAK_NG_CMAKE_ARGS 
+            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+        )
+    endif()
+    
     ExternalProject_Add(
         espeak_ng_external
         PREFIX "${CMAKE_CURRENT_BINARY_DIR}/e"
         URL "https://github.com/rhasspy/espeak-ng/archive/0f65aa301e0d6bae5e172cc74197d32a6182200f.zip"
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${ESPEAK_NG_DIR}
-        CMAKE_ARGS -DUSE_ASYNC:BOOL=OFF
-        CMAKE_ARGS -DBUILD_SHARED_LIBS:BOOL=ON
-        CMAKE_ARGS -DUSE_MBROLA:BOOL=OFF
-        CMAKE_ARGS -DUSE_LIBSONIC:BOOL=OFF
-        CMAKE_ARGS -DUSE_LIBPCAUDIO:BOOL=OFF
-        CMAKE_ARGS -DUSE_KLATT:BOOL=OFF
-        CMAKE_ARGS -DUSE_SPEECHPLAYER:BOOL=OFF
-        CMAKE_ARGS -DEXTRA_cmn:BOOL=ON
-        CMAKE_ARGS -DEXTRA_ru:BOOL=ON
-        CMAKE_ARGS -DCMAKE_C_FLAGS="-D_FILE_OFFSET_BITS=64"
+        CMAKE_ARGS ${ESPEAK_NG_CMAKE_ARGS}
     )
     add_dependencies(piper_phonemize espeak_ng_external)
 endif()

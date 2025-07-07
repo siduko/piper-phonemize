@@ -55,6 +55,13 @@ jobs:
 
     - name: Configure CMake
       run: |
+        if [ "${{ matrix.target }}" == "Android" ]; then
+          echo "Android NDK Home: $ANDROID_NDK_HOME"
+          echo "Android ABI: ${{ matrix.arch }}"
+          echo "Checking NDK toolchain:"
+          ls -la $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/ | head -5
+        fi
+        
         if [ "${{ matrix.target }}" == "iOS" ]; then
           # iOS requires special handling
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
