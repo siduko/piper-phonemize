@@ -41,6 +41,8 @@ jobs:
     - name: Set up MSVC for Windows
       if: matrix.target == 'Windows'
       uses: TheMrMilchmann/setup-msvc-dev@v3
+      with:
+        arch: x64
 
     - name: Set up Android NDK
       if: matrix.target == 'Android'
