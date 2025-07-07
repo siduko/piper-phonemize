@@ -53,6 +53,20 @@ jobs:
       with:
         ndk-version: r23c
 
+    - name: Set up Xcode for iOS
+      if: matrix.target == 'iOS'
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Install build tools for iOS
+      if: matrix.target == 'iOS'
+      run: |
+        # Ensure command line tools are installed
+        xcode-select --install || true
+        # Accept Xcode license
+        sudo xcodebuild -license accept || true
+
     - name: Configure CMake
       shell: bash
       run: |
@@ -64,16 +78,26 @@ jobs:
         fi
         
         if [ "${{ matrix.target }}" == "iOS" ]; then
-          # iOS requires special handling
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+          # iOS requires special handling with proper Xcode toolchain
+          export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+          export iOS_PLATFORM=OS
+          export iOS_SDK_VERSION=$(xcrun --show-sdk-version --sdk iphoneos)
+          
+          echo "iOS build environment:"
+          echo "DEVELOPER_DIR: $DEVELOPER_DIR"
+          echo "iOS SDK Version: $iOS_SDK_VERSION"
+          echo "iOS SDK Path: $(xcrun --show-sdk-path --sdk iphoneos)"
+          echo "Available iOS SDKs: $(xcodebuild -showsdks | grep iOS)"
+          
+          # Configure with iOS toolchain
+          cmake -B build -G Xcode -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-            -DCMAKE_TOOLCHAIN_FILE=cmake/ios.toolchain.cmake || \
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+            -DCMAKE_TOOLCHAIN_FILE=cmake/ios.toolchain.cmake \
+            -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="" \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
         else
           cmake -B build -DCMAKE_BUILD_TYPE=Release \
             ${{ matrix.target == 'Android' && format('-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake -DANDROID_ABI={0} -DANDROID_PLATFORM=21', matrix.arch) || '' }} \
@@ -81,7 +105,15 @@ jobs:
         fi
 
     - name: Build with CMake
-      run: cmake --build build --config Release
+      shell: bash
+      run: |
+        if [ "${{ matrix.target }}" == "iOS" ]; then
+          # For iOS, use Xcode build system
+          cmake --build build --config Release -- -allowProvisioningUpdates
+        else
+          # Standard build for other platforms
+          cmake --build build --config Release
+        fi
       continue-on-error: ${{ matrix.target == 'iOS' }}
 
     - name: Prepare Artifacts
