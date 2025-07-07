@@ -12,10 +12,31 @@ execute_process(
     ERROR_QUIET
 )
 
+message(STATUS "iOS toolchain: Initial SDK path from xcrun: ${CMAKE_OSX_SYSROOT}")
+
 # Fallback if xcrun fails
 if(NOT CMAKE_OSX_SYSROOT)
-    set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk")
+    # Try to find the latest iOS SDK
+    execute_process(
+        COMMAND find /Applications -name "iPhoneOS*.sdk" -type d
+        OUTPUT_VARIABLE IOS_SDK_SEARCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    
+    if(IOS_SDK_SEARCH)
+        # Get the first (typically latest) SDK found
+        string(REGEX REPLACE "\n.*" "" FIRST_SDK "${IOS_SDK_SEARCH}")
+        set(CMAKE_OSX_SYSROOT "${FIRST_SDK}")
+        message(STATUS "iOS toolchain: Using found SDK: ${CMAKE_OSX_SYSROOT}")
+    else()
+        # Final fallback
+        set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk")
+        message(STATUS "iOS toolchain: Using fallback SDK: ${CMAKE_OSX_SYSROOT}")
+    endif()
 endif()
+
+message(STATUS "iOS toolchain: Final SDK path: ${CMAKE_OSX_SYSROOT}")
 
 # Set compiler paths
 set(CMAKE_C_COMPILER xcrun)

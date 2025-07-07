@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
 
+# Set CMake policies
+if(POLICY CMP0114)
+    cmake_policy(SET CMP0114 NEW)
+endif()
+
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
 set(CMAKE_VERBOSE_MAKEFILE off)
 
 project(
@@ -180,6 +189,7 @@ if(NOT DEFINED ESPEAK_NG_DIR)
         espeak_ng_external
         PREFIX "${CMAKE_CURRENT_BINARY_DIR}/e"
         URL "https://github.com/rhasspy/espeak-ng/archive/0f65aa301e0d6bae5e172cc74197d32a6182200f.zip"
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CMAKE_ARGS ${ESPEAK_NG_CMAKE_ARGS}
     )
     add_dependencies(piper_phonemize espeak_ng_external)
@@ -294,9 +304,19 @@ install(
     PATTERN "*.h"
     PATTERN "*.hpp")
 
-install(
-    TARGETS piper_phonemize_exe
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR})
+# Install executable with platform-specific handling
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    install(
+        TARGETS piper_phonemize_exe
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
+else()
+    install(
+        TARGETS piper_phonemize_exe
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 
 install(
     FILES ${CMAKE_SOURCE_DIR}/etc/libtashkeel_model.ort
