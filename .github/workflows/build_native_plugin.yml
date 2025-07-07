@@ -54,6 +54,7 @@ jobs:
         ndk-version: r23c
 
     - name: Configure CMake
+      shell: bash
       run: |
         if [ "${{ matrix.target }}" == "Android" ]; then
           echo "Android NDK Home: $ANDROID_NDK_HOME"
@@ -84,6 +85,7 @@ jobs:
       continue-on-error: ${{ matrix.target == 'iOS' }}
 
     - name: Prepare Artifacts
+      shell: bash
       run: |
         mkdir -p artifacts/Plugins/${{ matrix.target }}/${{ matrix.arch }}
         mkdir -p artifacts/StreamingAssets/espeak-ng-data
