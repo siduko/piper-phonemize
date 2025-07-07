@@ -27,6 +27,7 @@ add_library(
     src/phoneme_ids.cpp
     src/tashkeel.cpp
     src/shared.cpp
+    src/unity_interface.cpp
 )
 
 set_target_properties(piper_phonemize PROPERTIES

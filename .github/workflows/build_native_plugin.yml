@@ -1,0 +1,84 @@
+#.github/workflows/build_native_plugin.yml
+
+name: Build Cross-Platform Phonemizer Plugin
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: Windows
+            arch: x86_64
+          - os: macos-latest
+            target: macOS
+            arch: universal # x86_64 + arm64
+          - os: ubuntu-latest
+            target: Android
+            arch: arm64-v8a
+          - os: ubuntu-latest
+            target: Android
+            arch: armeabi-v7a
+          - os: macos-latest
+            target: iOS
+            arch: arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+
+    - name: Set up MSVC for Windows
+      if: matrix.target == 'Windows'
+      uses: TheMrMilchmann/setup-msvc-dev@v3
+
+    - name: Set up Android NDK
+      if: matrix.target == 'Android'
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r23c
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release \
+        ${{ matrix.target == 'Android' && format('-DCMAKE_TOOLCHAIN_FILE={0}/build/cmake/android.toolchain.cmake -DANDROID_ABI={1} -DANDROID_PLATFORM=21', env.ANDROID_NDK_HOME, matrix.arch) || '' }} \
+        ${{ matrix.target == 'iOS' && '-DCMAKE_TOOLCHAIN_FILE=./piper-phonemize/src/espeak-ng/cmake/ios.toolchain.cmake -DIOS_PLATFORM=OS64' || '' }} \
+        ${{ matrix.target == 'macOS' && '-DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"' || '' }}
+
+    - name: Build with CMake
+      run: cmake --build build --config Release
+
+    - name: Prepare Artifacts
+      run: |
+        mkdir -p artifacts/Plugins/${{ matrix.target }}/${{ matrix.arch }}
+        mkdir -p artifacts/StreamingAssets/espeak-ng-data
+
+        # Copy compiled library
+        if [ "${{ matrix.target }}" == "Windows" ]; then
+          cp build/Release/phonemizer.dll artifacts/Plugins/Windows/x86_64/
+        elif; then
+          cp build/libphonemizer.dylib artifacts/Plugins/macOS/phonemizer.bundle
+        elif [ "${{ matrix.target }}" == "Android" ]; then
+          cp build/libphonemizer.so artifacts/Plugins/Android/${{ matrix.arch }}/
+        elif; then
+          cp build/libphonemizer.a artifacts/Plugins/iOS/
+        fi
+
+        # Copy espeak-ng data
+        cp -r piper-phonemize/src/espeak-ng/espeak-ng-data/* artifacts/StreamingAssets/espeak-ng-data/
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: phonemizer-plugin-${{ matrix.target }}-${{ matrix.arch }}
+        path: artifacts/
