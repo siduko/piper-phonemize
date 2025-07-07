@@ -88,13 +88,19 @@ jobs:
           echo "iOS SDK Version: $iOS_SDK_VERSION"
           echo "iOS SDK Path: $(xcrun --show-sdk-path --sdk iphoneos)"
           echo "Available iOS SDKs: $(xcodebuild -showsdks | grep iOS)"
+          echo "Current working directory: $(pwd)"
+          echo "Checking for toolchain file:"
+          ls -la cmake/ios.toolchain.cmake || echo "Toolchain file not found"
           
-          # Configure with iOS toolchain
+          # Configure with iOS toolchain using absolute path
+          TOOLCHAIN_FILE="$(pwd)/cmake/ios.toolchain.cmake"
+          echo "Using toolchain file: $TOOLCHAIN_FILE"
+          
           cmake -B build -G Xcode -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-            -DCMAKE_TOOLCHAIN_FILE=cmake/ios.toolchain.cmake \
+            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
             -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="" \
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
