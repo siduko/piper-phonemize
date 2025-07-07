@@ -3,7 +3,9 @@
 #include <vector>
 
 #include <espeak-ng/speak_lib.h>
+#ifndef NO_ONNXRUNTIME
 #include <onnxruntime_cxx_api.h>
+#endif
 
 #include "phonemize.hpp"
 #include "uni_algo.h"

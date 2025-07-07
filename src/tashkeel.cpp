@@ -6,7 +6,9 @@
 #include <string>
 #include <vector>
 
+#ifndef NO_ONNXRUNTIME
 #include <onnxruntime_cxx_api.h>
+#endif
 
 #include "tashkeel.hpp"
 #include "uni_algo.h"
@@ -78,6 +80,7 @@ std::set<char32_t> HARAKAT_CHARS{
 
 std::set<int> INVALID_HARAKA_IDS{UNK_ID, 8};
 
+#ifndef NO_ONNXRUNTIME
 PIPERPHONEMIZE_EXPORT void tashkeel_load(std::string modelPath, State &state) {
   state.env = Ort::Env(OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING,
                        instanceName.c_str());
@@ -191,5 +194,20 @@ PIPERPHONEMIZE_EXPORT std::string tashkeel_run(std::string text, State &state) {
   // Result is UTF-8
   return una::utf32to8(processedText);
 }
+
+#else
+// Stub implementations for when onnxruntime is not available
+PIPERPHONEMIZE_EXPORT void tashkeel_load(std::string modelPath, State &state) {
+  // Do nothing when onnxruntime is not available
+  (void)modelPath;
+  (void)state;
+}
+
+PIPERPHONEMIZE_EXPORT std::string tashkeel_run(std::string text, State &state) {
+  // Simply return the input text unchanged when onnxruntime is not available
+  (void)state;
+  return text;
+}
+#endif
 
 } // namespace tashkeel

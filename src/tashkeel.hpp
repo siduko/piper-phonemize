@@ -5,7 +5,9 @@
 #include <set>
 #include <string>
 
+#ifndef NO_ONNXRUNTIME
 #include <onnxruntime_cxx_api.h>
+#endif
 
 #include "shared.hpp"
 
@@ -22,6 +24,7 @@ extern std::set<int> INVALID_HARAKA_IDS;
 extern std::map<char32_t, int> inputVocab;
 extern std::map<int, std::vector<char32_t>> outputVocab;
 
+#ifndef NO_ONNXRUNTIME
 struct State {
   Ort::Session onnx;
   Ort::AllocatorWithDefaultOptions allocator;
@@ -30,6 +33,14 @@ struct State {
 
   State() : onnx(nullptr){};
 };
+#else
+struct State {
+  // Placeholder for when onnxruntime is not available
+  int placeholder;
+  
+  State() : placeholder(0){};
+};
+#endif
 
 PIPERPHONEMIZE_EXPORT void tashkeel_load(std::string modelPath, State &state);
 PIPERPHONEMIZE_EXPORT std::string tashkeel_run(std::string text, State &state);
