@@ -23,7 +23,10 @@ if(MSVC)
     # Force compiler to use UTF-8 for IPA constants
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-
+elseif(ANDROID)
+    # Android flags
+    string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -fPIC")
+    string(APPEND CMAKE_C_FLAGS " -Wall -Wextra -fPIC")
 elseif(NOT APPLE)
     # Linux flags
     string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Wl,-rpath,'$ORIGIN'")
@@ -79,7 +82,11 @@ if(NOT DEFINED ONNXRUNTIME_DIR)
             set(ONNXRUNTIME_EXT "tgz")
         endif()
     else()
-        if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
+        if(ANDROID)
+            # Android builds - skip onnxruntime for now as it's complex to set up
+            set(SKIP_ONNXRUNTIME TRUE)
+            message(STATUS "Skipping onnxruntime for Android build")
+        elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
             # Linux x86-64
             set(ONNXRUNTIME_PREFIX "onnxruntime-linux-x64-${ONNXRUNTIME_VERSION}")
         elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64)
@@ -175,14 +182,24 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             -DCMAKE_ANDROID_NDK=${CMAKE_ANDROID_NDK}
             -DCMAKE_BUILD_TYPE=Release
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+            -DBUILD_ESPEAK_NG_EXE=OFF
         )
     endif()
     
-    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-        list(APPEND ESPEAK_NG_CMAKE_ARGS 
-            -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-        )
+    if(APPLE)
+        # For all Apple platforms (macOS and iOS), ensure architecture is passed
+        if(CMAKE_OSX_ARCHITECTURES)
+            list(APPEND ESPEAK_NG_CMAKE_ARGS -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES})
+        endif()
+        
+        if(CMAKE_OSX_DEPLOYMENT_TARGET)
+            list(APPEND ESPEAK_NG_CMAKE_ARGS -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
+        endif()
+        
+        # iOS-specific settings
+        if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+            list(APPEND ESPEAK_NG_CMAKE_ARGS -DBUILD_ESPEAK_NG_EXE=OFF)
+        endif()
     endif()
     
     ExternalProject_Add(
@@ -237,57 +254,61 @@ target_compile_features(piper_phonemize PUBLIC cxx_std_17)
 
 # ---- Declare executable ----
 
-add_executable(piper_phonemize_exe src/main.cpp src/phoneme_ids.cpp)
+if(NOT ANDROID)
+    add_executable(piper_phonemize_exe src/main.cpp src/phoneme_ids.cpp)
 
-if(NOT WIN32)
-    set_property(TARGET piper_phonemize_exe PROPERTY OUTPUT_NAME piper_phonemize)
+    if(NOT WIN32)
+        set_property(TARGET piper_phonemize_exe PROPERTY OUTPUT_NAME piper_phonemize)
+    endif()
+
+    target_compile_features(piper_phonemize_exe PUBLIC cxx_std_17)
+
+    target_include_directories(
+        piper_phonemize_exe PUBLIC
+        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>"
+        ${ESPEAK_NG_DIR}/include
+    )
+
+    target_link_directories(
+        piper_phonemize_exe PUBLIC
+        ${ESPEAK_NG_DIR}/lib
+    )
+
+    target_link_libraries(piper_phonemize_exe PUBLIC
+        piper_phonemize
+        espeak-ng
+    )
 endif()
-
-target_compile_features(piper_phonemize_exe PUBLIC cxx_std_17)
-
-target_include_directories(
-    piper_phonemize_exe PUBLIC
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>"
-    ${ESPEAK_NG_DIR}/include
-)
-
-target_link_directories(
-    piper_phonemize_exe PUBLIC
-    ${ESPEAK_NG_DIR}/lib
-)
-
-target_link_libraries(piper_phonemize_exe PUBLIC
-    piper_phonemize
-    espeak-ng
-)
 
 # ---- Declare test ----
 
-include(CTest)
-enable_testing()
-add_executable(test_piper_phonemize src/test.cpp src/phoneme_ids.cpp)
-add_test(
-    NAME test_piper_phonemize
-    COMMAND test_piper_phonemize "${ESPEAK_NG_DIR}/share/espeak-ng-data" "${CMAKE_SOURCE_DIR}/etc/libtashkeel_model.ort"
-)
+if(NOT ANDROID)
+    include(CTest)
+    enable_testing()
+    add_executable(test_piper_phonemize src/test.cpp src/phoneme_ids.cpp)
+    add_test(
+        NAME test_piper_phonemize
+        COMMAND test_piper_phonemize "${ESPEAK_NG_DIR}/share/espeak-ng-data" "${CMAKE_SOURCE_DIR}/etc/libtashkeel_model.ort"
+    )
 
-target_compile_features(test_piper_phonemize PUBLIC cxx_std_17)
+    target_compile_features(test_piper_phonemize PUBLIC cxx_std_17)
 
-target_include_directories(
-    test_piper_phonemize PUBLIC
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>"
-    ${ESPEAK_NG_DIR}/include
-)
+    target_include_directories(
+        test_piper_phonemize PUBLIC
+        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>"
+        ${ESPEAK_NG_DIR}/include
+    )
 
-target_link_directories(
-    test_piper_phonemize PUBLIC
-    ${ESPEAK_NG_DIR}/lib
-)
+    target_link_directories(
+        test_piper_phonemize PUBLIC
+        ${ESPEAK_NG_DIR}/lib
+    )
 
-target_link_libraries(test_piper_phonemize PUBLIC
-    piper_phonemize
-    espeak-ng
-)
+    target_link_libraries(test_piper_phonemize PUBLIC
+        piper_phonemize
+        espeak-ng
+    )
+endif()
 
 # ---- Declare install targets ----
 
@@ -305,17 +326,19 @@ install(
     PATTERN "*.hpp")
 
 # Install executable with platform-specific handling
-if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    install(
-        TARGETS piper_phonemize_exe
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
-else()
-    install(
-        TARGETS piper_phonemize_exe
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR})
+if(NOT ANDROID)
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        install(
+            TARGETS piper_phonemize_exe
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
+    else()
+        install(
+            TARGETS piper_phonemize_exe
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
 endif()
 
 install(
