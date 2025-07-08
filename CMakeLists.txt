@@ -183,6 +183,17 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             -DCMAKE_BUILD_TYPE=Release
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON
             -DBUILD_ESPEAK_NG_EXE=OFF
+            -DUSE_ASYNC=OFF
+            -DUSE_MBROLA=OFF
+            -DUSE_LIBSONIC=OFF
+            -DUSE_LIBPCAUDIO=OFF
+            -DUSE_KLATT=OFF
+            -DUSE_SPEECHPLAYER=OFF
+            -DEXTRA_cmn=OFF
+            -DEXTRA_ru=OFF
+            -DBUILD_ESPEAK_NG_TESTS=OFF
+            -DCOMPILE_INTONATIONS=OFF
+            -DCOMPILE_MBROLA_VOICES=OFF
         )
     endif()
     
@@ -214,11 +225,11 @@ if(NOT DEFINED ESPEAK_NG_DIR)
     # Set up platform-specific patch command for iOS
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         set(ESPEAK_NG_PATCH_COMMAND 
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,/^[[:space:]]*$$/d" {} \\;
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/set_target_properties.*espeak-ng-bin/d" {} \\;
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} \\;
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/install.*espeak-ng-bin/d" {} \\;
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/MACOSX_BUNDLE/d" {} \\;
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,/^[[:space:]]*$$/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/set_target_properties.*espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/install.*espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/MACOSX_BUNDLE/d" {} +
         )
     else()
         set(ESPEAK_NG_PATCH_COMMAND "")
