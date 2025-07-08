@@ -234,7 +234,7 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/install.*espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/MACOSX_BUNDLE/d" {} +
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/$<TARGET_FILE:espeak-ng-bin>/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/\\$<TARGET_FILE:espeak-ng-bin>/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test/,/shell_test/{ /espeak-ng-bin/d; }" {} +
         )
@@ -244,12 +244,12 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/set_target_properties.*espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/install.*espeak-ng-bin/d" {} +
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/$<TARGET_FILE:espeak-ng-bin>/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/\\$<TARGET_FILE:espeak-ng-bin>/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test/,/shell_test/{ /espeak-ng-bin/d; }" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory.*data/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_dependencies.*data/d" {} +
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/CMakeFiles\/data\.dir/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/CMakeFiles\\/data\\.dir/d" {} +
         )
     else()
         set(ESPEAK_NG_PATCH_COMMAND "")
