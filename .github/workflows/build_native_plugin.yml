@@ -119,7 +119,8 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
             -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="" \
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
-            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -DBUILD_SHARED_LIBS=OFF
         else
           echo "Configuring CMake for ${{ matrix.target }} ${{ matrix.arch }}"
           

@@ -48,8 +48,10 @@ set(CMAKE_CXX_COMPILER_ARG1 clang++)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fembed-bitcode -arch arm64")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fembed-bitcode -arch arm64")
 
-# Set library types
+# Set library types - force static libraries for iOS
 set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_SKIP_BUILD_RPATH ON)
+set(CMAKE_SKIP_INSTALL_RPATH ON)
 
 # Skip compiler tests for cross-compilation
 set(CMAKE_C_COMPILER_WORKS 1)

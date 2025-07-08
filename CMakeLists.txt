@@ -198,8 +198,28 @@ if(NOT DEFINED ESPEAK_NG_DIR)
         
         # iOS-specific settings
         if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-            list(APPEND ESPEAK_NG_CMAKE_ARGS -DBUILD_ESPEAK_NG_EXE=OFF)
+            list(APPEND ESPEAK_NG_CMAKE_ARGS 
+                -DBUILD_ESPEAK_NG_EXE=OFF
+                -DBUILD_ESPEAK_NG_TESTS=OFF
+                -DBUILD_SHARED_LIBS=OFF
+                -DEXTRA_cmn=OFF
+                -DEXTRA_ru=OFF
+                -DCMAKE_INSTALL_BINDIR=bin
+                -DCMAKE_SKIP_BUILD_RPATH=ON
+                -DCMAKE_SKIP_INSTALL_RPATH=ON
+            )
         endif()
+    endif()
+    
+    # Set up platform-specific patch command for iOS
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        set(ESPEAK_NG_PATCH_COMMAND 
+            COMMAND sed -i.bak "/install.*espeak-ng-bin/d" src/CMakeLists.txt
+            COMMAND sed -i.bak "/MACOSX_BUNDLE/d" src/CMakeLists.txt
+            COMMAND sed -i.bak "s/add_executable(espeak-ng-bin/# add_executable(espeak-ng-bin/" src/CMakeLists.txt
+        )
+    else()
+        set(ESPEAK_NG_PATCH_COMMAND "")
     endif()
     
     ExternalProject_Add(
@@ -207,6 +227,7 @@ if(NOT DEFINED ESPEAK_NG_DIR)
         PREFIX "${CMAKE_CURRENT_BINARY_DIR}/e"
         URL "https://github.com/rhasspy/espeak-ng/archive/0f65aa301e0d6bae5e172cc74197d32a6182200f.zip"
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        PATCH_COMMAND ${ESPEAK_NG_PATCH_COMMAND}
         CMAKE_ARGS ${ESPEAK_NG_CMAKE_ARGS}
     )
     add_dependencies(piper_phonemize espeak_ng_external)
