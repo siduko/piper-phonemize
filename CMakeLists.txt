@@ -194,6 +194,10 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             -DBUILD_ESPEAK_NG_TESTS=OFF
             -DCOMPILE_INTONATIONS=OFF
             -DCOMPILE_MBROLA_VOICES=OFF
+            -DCOMPILE_DICTIONARIES=OFF
+            -DCOMPILE_PHONEMES=OFF
+            -DUSE_MBROLA_VOICES=OFF
+            -DBUILD_SHARED_LIBS=OFF
         )
     endif()
     
@@ -230,6 +234,9 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/install.*espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/MACOSX_BUNDLE/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/$<TARGET_FILE:espeak-ng-bin>/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test/,/shell_test/{ /espeak-ng-bin/d; }" {} +
         )
     else()
         set(ESPEAK_NG_PATCH_COMMAND "")
