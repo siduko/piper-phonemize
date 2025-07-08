@@ -1,8 +1,8 @@
 # iOS toolchain for cross-compilation
 set(CMAKE_SYSTEM_NAME iOS)
-set(CMAKE_SYSTEM_VERSION 11.0)
+set(CMAKE_SYSTEM_VERSION 12.0)
 set(CMAKE_OSX_ARCHITECTURES "arm64")
-set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
 
 # Set iOS SDK path
 execute_process(

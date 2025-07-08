@@ -214,9 +214,11 @@ if(NOT DEFINED ESPEAK_NG_DIR)
     # Set up platform-specific patch command for iOS
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         set(ESPEAK_NG_PATCH_COMMAND 
-            COMMAND sed -i.bak "/install.*espeak-ng-bin/d" src/CMakeLists.txt
-            COMMAND sed -i.bak "/MACOSX_BUNDLE/d" src/CMakeLists.txt
-            COMMAND sed -i.bak "s/add_executable(espeak-ng-bin/# add_executable(espeak-ng-bin/" src/CMakeLists.txt
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,/^[[:space:]]*$$/d" {} \\;
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/set_target_properties.*espeak-ng-bin/d" {} \\;
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} \\;
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/install.*espeak-ng-bin/d" {} \\;
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/MACOSX_BUNDLE/d" {} \\;
         )
     else()
         set(ESPEAK_NG_PATCH_COMMAND "")
@@ -275,7 +277,7 @@ target_compile_features(piper_phonemize PUBLIC cxx_std_17)
 
 # ---- Declare executable ----
 
-if(NOT ANDROID)
+if(NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     add_executable(piper_phonemize_exe src/main.cpp src/phoneme_ids.cpp)
 
     if(NOT WIN32)
@@ -303,7 +305,7 @@ endif()
 
 # ---- Declare test ----
 
-if(NOT ANDROID)
+if(NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     include(CTest)
     enable_testing()
     add_executable(test_piper_phonemize src/test.cpp src/phoneme_ids.cpp)
@@ -347,19 +349,10 @@ install(
     PATTERN "*.hpp")
 
 # Install executable with platform-specific handling
-if(NOT ANDROID)
-    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-        install(
-            TARGETS piper_phonemize_exe
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR}
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-            BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
-    else()
-        install(
-            TARGETS piper_phonemize_exe
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR})
-    endif()
+if(NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    install(
+        TARGETS piper_phonemize_exe
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
 install(
