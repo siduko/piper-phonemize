@@ -174,15 +174,47 @@ jobs:
       shell: bash
       run: |
         mkdir -p artifacts/Plugins/${{ matrix.target }}/${{ matrix.arch }}
+        mkdir -p artifacts/Binaries/${{ matrix.target }}/${{ matrix.arch }}
         mkdir -p artifacts/StreamingAssets/espeak-ng-data
 
         # Copy compiled library
         if [ "${{ matrix.target }}" == "Windows" ]; then
+          # Main piper_phonemize library
           cp build/Release/piper_phonemize.dll artifacts/Plugins/Windows/x86_64/ || cp build/piper_phonemize.dll artifacts/Plugins/Windows/x86_64/ || true
+          
+          # Copy piper_phonemize executable
+          cp build/Release/piper_phonemize.exe artifacts/Binaries/Windows/x86_64/ || cp build/piper_phonemize.exe artifacts/Binaries/Windows/x86_64/ || true
+          
+          # Copy espeak-ng library
+          cp build/ei/lib/espeak-ng.dll artifacts/Plugins/Windows/x86_64/ || true
+          cp build/ei/bin/espeak-ng.dll artifacts/Plugins/Windows/x86_64/ || true
+          
+          # Copy onnxruntime library
+          find lib -name "onnxruntime.dll" -exec cp {} artifacts/Plugins/Windows/x86_64/ \; || true
+          find build -name "onnxruntime.dll" -exec cp {} artifacts/Plugins/Windows/x86_64/ \; || true
+          
         elif [ "${{ matrix.target }}" == "macOS" ]; then
+          # Main piper_phonemize library
           cp build/libpiper_phonemize.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/ || true
+          
+          # Copy piper_phonemize executable
+          cp build/piper_phonemize artifacts/Binaries/macOS/${{ matrix.arch }}/ || true
+          
+          # Copy espeak-ng library
+          cp build/ei/lib/libespeak-ng.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/ || true
+          cp build/ei/lib/libespeak-ng.*.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/ || true
+          
+          # Copy onnxruntime library
+          find lib -name "libonnxruntime*.dylib" -exec cp {} artifacts/Plugins/macOS/${{ matrix.arch }}/ \; || true
+          find build -name "libonnxruntime*.dylib" -exec cp {} artifacts/Plugins/macOS/${{ matrix.arch }}/ \; || true
+          
         elif [ "${{ matrix.target }}" == "Android" ]; then
+          # Main piper_phonemize library
           cp build/libpiper_phonemize.so artifacts/Plugins/Android/${{ matrix.arch }}/ || true
+          
+          # Copy espeak-ng library (Android builds as static, so might not have separate .so)
+          cp build/ei/lib/libespeak-ng.so artifacts/Plugins/Android/${{ matrix.arch }}/ || true
+          
         elif [ "${{ matrix.target }}" == "iOS" ]; then
           # Check multiple possible locations for iOS library
           if [ -f "build/Release-iphoneos/libpiper_phonemize.a" ]; then
@@ -193,6 +225,9 @@ jobs:
             echo "iOS library not found, checking all locations..."
             find build -name "libpiper_phonemize*" -type f || true
           fi
+          
+          # Copy espeak-ng library for iOS (static library)
+          cp build/ei/lib/libespeak-ng.a artifacts/Plugins/iOS/ || true
         fi
 
         # Copy espeak-ng data (adjust path based on actual build structure)
