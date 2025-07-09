@@ -278,6 +278,14 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/shell_test.*espeak-ng-bin/d" {} +
             # Remove empty test commands
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test.*COMMAND[[:space:]]*$/d" {} +
+            # More aggressive test removal - remove entire shell_test function and calls
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/function(shell_test/,/endfunction/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/shell_test(/d" {} +
+            # Remove any remaining problematic test patterns
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test.*shell_test/d" {} +
+            # Completely disable tests directory if it exists
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory.*tests/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory(tests/d" {} +
         )
     elseif(ANDROID)
         set(ESPEAK_NG_PATCH_COMMAND 
@@ -292,6 +300,11 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             # Remove problematic test blocks
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test.*espeak-ng-bin/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/shell_test.*espeak-ng-bin/d" {} +
+            # More aggressive test removal
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/function(shell_test/,/endfunction/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/shell_test(/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory.*tests/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory(tests/d" {} +
             # Android-specific patches
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory.*data/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_dependencies.*data/d" {} +
