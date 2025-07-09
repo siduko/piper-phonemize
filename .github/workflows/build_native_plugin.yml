@@ -154,6 +154,45 @@ jobs:
         if [ "${{ matrix.target }}" == "iOS" ]; then
           # For iOS, use Xcode build system with verbose output
           echo "Building for iOS with Xcode..."
+          
+          # Clean build directory if it exists
+          if [ -d "build" ]; then
+            rm -rf build
+          fi
+          
+          # Reconfigure with additional debugging
+          TOOLCHAIN_FILE="$(pwd)/cmake/ios.toolchain.cmake"
+          echo "Using toolchain file: $TOOLCHAIN_FILE"
+          
+          cmake -B build -G Xcode -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
+            -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM="" \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -DBUILD_SHARED_LIBS=OFF \
+            --debug-output
+          
+          # Verify that espeak-ng patch worked correctly
+          echo "Checking if espeak-ng-bin references were removed..."
+          if find build -name "CMakeLists.txt" -exec grep -l "espeak-ng-bin" {} \; | head -5; then
+            echo "WARNING: Some espeak-ng-bin references might still exist in build files"
+            echo "Showing first few problematic files:"
+            find build -name "CMakeLists.txt" -exec grep -n "espeak-ng-bin" {} + | head -10
+          else
+            echo "✓ No espeak-ng-bin references found in CMakeLists.txt files"
+          fi
+          
+          echo "Checking external project directory structure..."
+          if [ -d "build/e" ]; then
+            echo "External project directory contents:"
+            find build/e -name "CMakeLists.txt" | head -5
+            echo "Checking for espeak-ng-bin references in external project:"
+            find build/e -name "CMakeLists.txt" -exec grep -l "espeak-ng-bin" {} \; | head -3 || echo "No references found"
+          fi
+          
           cmake --build build --config Release --verbose -- -allowProvisioningUpdates
           
           # Check if the library was built successfully
