@@ -299,7 +299,6 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory(tests/d" {} +
             # Remove any remaining target_link_libraries calls with potential issues
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/^[[:space:]]*target_link_libraries[[:space:]]*([[:space:]]*$/d" {} +
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/^[[:space:]]*)[[:space:]]*$/{ N; /target_link_libraries/d; }" {} +
         )
     elseif(ANDROID)
         set(ESPEAK_NG_PATCH_COMMAND 
