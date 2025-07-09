@@ -198,6 +198,11 @@ if(NOT DEFINED ESPEAK_NG_DIR)
             -DCOMPILE_PHONEMES=OFF
             -DUSE_MBROLA_VOICES=OFF
             -DBUILD_SHARED_LIBS=OFF
+            # Disable tests to prevent test-related errors
+            -DBUILD_TESTING=OFF
+            -DENABLE_TESTING=OFF
+            # Set policy for option() behavior
+            -DCMAKE_POLICY_DEFAULT_CMP0077=NEW
         )
     endif()
     
@@ -245,6 +250,11 @@ if(NOT DEFINED ESPEAK_NG_DIR)
                 -DBUILD_PROGRAMS=OFF
                 -DBUILD_TOOLS=OFF
                 -DENABLE_EXECUTABLE=OFF
+                # Disable tests to prevent test-related errors
+                -DBUILD_TESTING=OFF
+                -DENABLE_TESTING=OFF
+                # Set policy for option() behavior
+                -DCMAKE_POLICY_DEFAULT_CMP0077=NEW
             )
         endif()
     endif()
@@ -253,16 +263,35 @@ if(NOT DEFINED ESPEAK_NG_DIR)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         # For iOS, we need to completely disable the espeak-ng-bin executable
         set(ESPEAK_NG_PATCH_COMMAND 
+            # Remove any lines containing espeak-ng-bin
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/espeak-ng-bin/d" {} +
+            # Remove generator expressions with TARGET_FILE
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/TARGET_FILE:espeak-ng-bin/d" {} +
+            # Remove MACOSX_BUNDLE references
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/MACOSX_BUNDLE/d" {} +
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,+10d" {} +
+            # Remove add_executable blocks for espeak-ng-bin (more aggressive)
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,+15d" {} +
+            # Fix target_link_libraries with incorrect arguments - remove problematic calls
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} +
+            # Remove problematic test blocks that reference espeak-ng-bin
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test.*espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/shell_test.*espeak-ng-bin/d" {} +
+            # Remove empty test commands
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test.*COMMAND[[:space:]]*$/d" {} +
         )
     elseif(ANDROID)
         set(ESPEAK_NG_PATCH_COMMAND 
+            # Remove any lines containing espeak-ng-bin
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/espeak-ng-bin/d" {} +
+            # Remove generator expressions with TARGET_FILE
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/TARGET_FILE:espeak-ng-bin/d" {} +
-            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,+10d" {} +
+            # Remove add_executable blocks for espeak-ng-bin (more aggressive)
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,+15d" {} +
+            # Fix target_link_libraries with incorrect arguments
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/target_link_libraries.*espeak-ng-bin/d" {} +
+            # Remove problematic test blocks
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_test.*espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/shell_test.*espeak-ng-bin/d" {} +
             # Android-specific patches
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory.*data/d" {} +
             COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_dependencies.*data/d" {} +
