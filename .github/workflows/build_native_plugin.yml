@@ -170,6 +170,19 @@ jobs:
         fi
       continue-on-error: ${{ matrix.target == 'iOS' }}
 
+    - name: Debug Build Output
+      shell: bash
+      run: |
+        echo "=== Debug: Checking build output ==="
+        echo "Build directory contents:"
+        find build -type f -name "*piper_phonemize*" -o -name "*espeak*" -o -name "*onnx*" | head -20
+        echo ""
+        echo "Library directory contents:"
+        find lib -type f -name "*.dll" -o -name "*.dylib" -o -name "*.so" 2>/dev/null | head -10 || true
+        echo ""
+        echo "External build directory contents:"
+        find build/ei -type f -name "*.dll" -o -name "*.dylib" -o -name "*.so" -o -name "*.a" 2>/dev/null | head -20 || true
+
     - name: Prepare Artifacts
       shell: bash
       run: |
@@ -177,63 +190,137 @@ jobs:
         mkdir -p artifacts/Binaries/${{ matrix.target }}/${{ matrix.arch }}
         mkdir -p artifacts/StreamingAssets/espeak-ng-data
 
+        echo "=== Preparing artifacts for ${{ matrix.target }} ${{ matrix.arch }} ==="
+
         # Copy compiled library
         if [ "${{ matrix.target }}" == "Windows" ]; then
+          echo "Copying Windows libraries..."
+          
           # Main piper_phonemize library
-          cp build/Release/piper_phonemize.dll artifacts/Plugins/Windows/x86_64/ || cp build/piper_phonemize.dll artifacts/Plugins/Windows/x86_64/ || true
+          if cp build/Release/piper_phonemize.dll artifacts/Plugins/Windows/x86_64/; then
+            echo "✓ Copied piper_phonemize.dll from build/Release/"
+          elif cp build/piper_phonemize.dll artifacts/Plugins/Windows/x86_64/; then
+            echo "✓ Copied piper_phonemize.dll from build/"
+          else
+            echo "✗ Failed to copy piper_phonemize.dll"
+          fi
           
           # Copy piper_phonemize executable
-          cp build/Release/piper_phonemize.exe artifacts/Binaries/Windows/x86_64/ || cp build/piper_phonemize.exe artifacts/Binaries/Windows/x86_64/ || true
+          if cp build/Release/piper_phonemize.exe artifacts/Binaries/Windows/x86_64/; then
+            echo "✓ Copied piper_phonemize.exe from build/Release/"
+          elif cp build/piper_phonemize.exe artifacts/Binaries/Windows/x86_64/; then
+            echo "✓ Copied piper_phonemize.exe from build/"
+          else
+            echo "✗ Failed to copy piper_phonemize.exe"
+          fi
           
           # Copy espeak-ng library
-          cp build/ei/lib/espeak-ng.dll artifacts/Plugins/Windows/x86_64/ || true
-          cp build/ei/bin/espeak-ng.dll artifacts/Plugins/Windows/x86_64/ || true
+          if cp build/ei/lib/espeak-ng.dll artifacts/Plugins/Windows/x86_64/; then
+            echo "✓ Copied espeak-ng.dll from build/ei/lib/"
+          elif cp build/ei/bin/espeak-ng.dll artifacts/Plugins/Windows/x86_64/; then
+            echo "✓ Copied espeak-ng.dll from build/ei/bin/"
+          else
+            echo "✗ Failed to copy espeak-ng.dll"
+          fi
           
           # Copy onnxruntime library
-          find lib -name "onnxruntime.dll" -exec cp {} artifacts/Plugins/Windows/x86_64/ \; || true
-          find build -name "onnxruntime.dll" -exec cp {} artifacts/Plugins/Windows/x86_64/ \; || true
+          if find lib -name "onnxruntime.dll" -exec cp {} artifacts/Plugins/Windows/x86_64/ \; | grep -q .; then
+            echo "✓ Copied onnxruntime.dll from lib/"
+          elif find build -name "onnxruntime.dll" -exec cp {} artifacts/Plugins/Windows/x86_64/ \; | grep -q .; then
+            echo "✓ Copied onnxruntime.dll from build/"
+          else
+            echo "✗ Failed to copy onnxruntime.dll"
+          fi
+          
+          # Copy any additional Windows runtime dependencies
+          find lib -name "*.dll" -exec cp {} artifacts/Plugins/Windows/x86_64/ \; 2>/dev/null || true
+          echo "✓ Copied additional Windows runtime libraries"
           
         elif [ "${{ matrix.target }}" == "macOS" ]; then
+          echo "Copying macOS libraries..."
+          
           # Main piper_phonemize library
-          cp build/libpiper_phonemize.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/ || true
+          if cp build/libpiper_phonemize.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/; then
+            echo "✓ Copied libpiper_phonemize.dylib"
+          else
+            echo "✗ Failed to copy libpiper_phonemize.dylib"
+          fi
           
           # Copy piper_phonemize executable
-          cp build/piper_phonemize artifacts/Binaries/macOS/${{ matrix.arch }}/ || true
+          if cp build/piper_phonemize artifacts/Binaries/macOS/${{ matrix.arch }}/; then
+            echo "✓ Copied piper_phonemize executable"
+          else
+            echo "✗ Failed to copy piper_phonemize executable"
+          fi
           
           # Copy espeak-ng library
-          cp build/ei/lib/libespeak-ng.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/ || true
-          cp build/ei/lib/libespeak-ng.*.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/ || true
+          if cp build/ei/lib/libespeak-ng.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/; then
+            echo "✓ Copied libespeak-ng.dylib"
+          elif cp build/ei/lib/libespeak-ng.*.dylib artifacts/Plugins/macOS/${{ matrix.arch }}/; then
+            echo "✓ Copied versioned libespeak-ng.dylib"
+          else
+            echo "✗ Failed to copy libespeak-ng.dylib"
+          fi
           
           # Copy onnxruntime library
-          find lib -name "libonnxruntime*.dylib" -exec cp {} artifacts/Plugins/macOS/${{ matrix.arch }}/ \; || true
-          find build -name "libonnxruntime*.dylib" -exec cp {} artifacts/Plugins/macOS/${{ matrix.arch }}/ \; || true
+          if find lib -name "libonnxruntime*.dylib" -exec cp {} artifacts/Plugins/macOS/${{ matrix.arch }}/ \; | grep -q .; then
+            echo "✓ Copied onnxruntime.dylib from lib/"
+          elif find build -name "libonnxruntime*.dylib" -exec cp {} artifacts/Plugins/macOS/${{ matrix.arch }}/ \; | grep -q .; then
+            echo "✓ Copied onnxruntime.dylib from build/"
+          else
+            echo "✗ Failed to copy onnxruntime.dylib"
+          fi
           
         elif [ "${{ matrix.target }}" == "Android" ]; then
+          echo "Copying Android libraries..."
+          
           # Main piper_phonemize library
-          cp build/libpiper_phonemize.so artifacts/Plugins/Android/${{ matrix.arch }}/ || true
+          if cp build/libpiper_phonemize.so artifacts/Plugins/Android/${{ matrix.arch }}/; then
+            echo "✓ Copied libpiper_phonemize.so"
+          else
+            echo "✗ Failed to copy libpiper_phonemize.so"
+          fi
           
           # Copy espeak-ng library (Android builds as static, so might not have separate .so)
-          cp build/ei/lib/libespeak-ng.so artifacts/Plugins/Android/${{ matrix.arch }}/ || true
+          if cp build/ei/lib/libespeak-ng.so artifacts/Plugins/Android/${{ matrix.arch }}/; then
+            echo "✓ Copied libespeak-ng.so"
+          else
+            echo "✗ Failed to copy libespeak-ng.so (might be statically linked)"
+          fi
           
         elif [ "${{ matrix.target }}" == "iOS" ]; then
+          echo "Copying iOS libraries..."
+          
           # Check multiple possible locations for iOS library
           if [ -f "build/Release-iphoneos/libpiper_phonemize.a" ]; then
-            cp build/Release-iphoneos/libpiper_phonemize.a artifacts/Plugins/iOS/ || true
+            cp build/Release-iphoneos/libpiper_phonemize.a artifacts/Plugins/iOS/
+            echo "✓ Copied libpiper_phonemize.a from build/Release-iphoneos/"
           elif [ -f "build/libpiper_phonemize.a" ]; then
-            cp build/libpiper_phonemize.a artifacts/Plugins/iOS/ || true
+            cp build/libpiper_phonemize.a artifacts/Plugins/iOS/
+            echo "✓ Copied libpiper_phonemize.a from build/"
           else
-            echo "iOS library not found, checking all locations..."
+            echo "✗ iOS library not found, checking all locations..."
             find build -name "libpiper_phonemize*" -type f || true
           fi
           
           # Copy espeak-ng library for iOS (static library)
-          cp build/ei/lib/libespeak-ng.a artifacts/Plugins/iOS/ || true
+          if cp build/ei/lib/libespeak-ng.a artifacts/Plugins/iOS/; then
+            echo "✓ Copied libespeak-ng.a"
+          else
+            echo "✗ Failed to copy libespeak-ng.a"
+          fi
         fi
 
         # Copy espeak-ng data (adjust path based on actual build structure)
         if [ -d "build/ei/share/espeak-ng-data" ]; then
-          cp -r build/ei/share/espeak-ng-data/* artifacts/StreamingAssets/espeak-ng-data/ || true
+          cp -r build/ei/share/espeak-ng-data/* artifacts/StreamingAssets/espeak-ng-data/
+          echo "✓ Copied espeak-ng-data"
+        else
+          echo "✗ espeak-ng-data not found"
         fi
+        
+        echo "=== Final artifact contents ==="
+        find artifacts -type f | sort
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
