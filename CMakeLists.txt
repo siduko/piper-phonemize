@@ -252,63 +252,33 @@ if(NOT DEFINED ESPEAK_NG_DIR)
     # Set up platform-specific patch command for cross-compilation
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         # For iOS, we need to completely disable the espeak-ng-bin executable
-        # Use a more comprehensive approach with multiple fallback strategies
         set(ESPEAK_NG_PATCH_COMMAND 
-            # Strategy 1: Remove executable definitions entirely
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/add_executable.*espeak-ng-bin/,/^$/d"
-            # Strategy 2: Remove all target references
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/espeak-ng-bin/d"
-            # Strategy 3: Remove generator expressions
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/\\$<TARGET_FILE:espeak-ng-bin>/d"
-            # Strategy 4: Remove MACOSX_BUNDLE
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/MACOSX_BUNDLE/d"
-            # Strategy 5: Create a dummy target to prevent errors (only if src/CMakeLists.txt exists)
-            COMMAND test -f src/CMakeLists.txt && echo "add_library(espeak-ng-bin INTERFACE)" >> src/CMakeLists.txt || true
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/TARGET_FILE:espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/MACOSX_BUNDLE/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,+10d" {} +
         )
-        # For iOS, also add the patch as an UPDATE command to ensure it runs
-        set(ESPEAK_NG_UPDATE_COMMAND ${ESPEAK_NG_PATCH_COMMAND})
     elseif(ANDROID)
         set(ESPEAK_NG_PATCH_COMMAND 
-            # Strategy 1: Remove executable definitions entirely
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/add_executable.*espeak-ng-bin/,/^$/d"
-            # Strategy 2: Remove all target references
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/espeak-ng-bin/d"
-            # Strategy 3: Remove generator expressions
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/\\$<TARGET_FILE:espeak-ng-bin>/d"
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/TARGET_FILE:espeak-ng-bin/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_executable.*espeak-ng-bin/,+10d" {} +
             # Android-specific patches
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/add_subdirectory.*data/d"
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/add_dependencies.*data/d"
-            COMMAND find . -name "CMakeLists.txt" -print0 | xargs -0 sed -i.bak -e "/CMakeFiles\\/data\\.dir/d"
-            # Strategy 4: Create a dummy target to prevent errors (only if src/CMakeLists.txt exists)
-            COMMAND test -f src/CMakeLists.txt && echo "add_library(espeak-ng-bin INTERFACE)" >> src/CMakeLists.txt || true
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_subdirectory.*data/d" {} +
+            COMMAND find . -name "CMakeLists.txt" -exec sed -i.bak "/add_dependencies.*data/d" {} +
         )
-        set(ESPEAK_NG_UPDATE_COMMAND ${ESPEAK_NG_PATCH_COMMAND})
     else()
         set(ESPEAK_NG_PATCH_COMMAND "")
-        set(ESPEAK_NG_UPDATE_COMMAND "")
     endif()
     
-    # Add UPDATE_COMMAND for iOS and Android to ensure patches are applied before configure
-    if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR ANDROID)
-        ExternalProject_Add(
-            espeak_ng_external
-            PREFIX "${CMAKE_CURRENT_BINARY_DIR}/e"
-            URL "https://github.com/rhasspy/espeak-ng/archive/0f65aa301e0d6bae5e172cc74197d32a6182200f.zip"
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-            PATCH_COMMAND ${ESPEAK_NG_PATCH_COMMAND}
-            UPDATE_COMMAND ${ESPEAK_NG_UPDATE_COMMAND}
-            CMAKE_ARGS ${ESPEAK_NG_CMAKE_ARGS}
-        )
-    else()
-        ExternalProject_Add(
-            espeak_ng_external
-            PREFIX "${CMAKE_CURRENT_BINARY_DIR}/e"
-            URL "https://github.com/rhasspy/espeak-ng/archive/0f65aa301e0d6bae5e172cc74197d32a6182200f.zip"
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-            PATCH_COMMAND ${ESPEAK_NG_PATCH_COMMAND}
-            CMAKE_ARGS ${ESPEAK_NG_CMAKE_ARGS}
-        )
-    endif()
+    ExternalProject_Add(
+        espeak_ng_external
+        PREFIX "${CMAKE_CURRENT_BINARY_DIR}/e"
+        URL "https://github.com/rhasspy/espeak-ng/archive/0f65aa301e0d6bae5e172cc74197d32a6182200f.zip"
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        PATCH_COMMAND ${ESPEAK_NG_PATCH_COMMAND}
+        CMAKE_ARGS ${ESPEAK_NG_CMAKE_ARGS}
+    )
     add_dependencies(piper_phonemize espeak_ng_external)
 endif()
 
