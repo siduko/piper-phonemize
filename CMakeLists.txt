@@ -321,12 +321,30 @@ if(NOT SKIP_ONNXRUNTIME)
         onnxruntime
     )
 else()
-    # For iOS builds, disable onnxruntime functionality
+    # For iOS/Android builds, disable onnxruntime functionality
     target_compile_definitions(piper_phonemize PRIVATE NO_ONNXRUNTIME)
     target_link_libraries(
         piper_phonemize
         espeak-ng
     )
+    
+    # For cross-platform builds, explicitly link additional espeak-ng dependencies
+    # These libraries are built as separate static libraries but needed by espeak-ng
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR ANDROID)
+        # Link ucd library (Unicode character database functions)
+        target_link_libraries(
+            piper_phonemize
+            ${ESPEAK_NG_DIR}/lib/libucd.a
+        )
+        
+        # Link sonic library if it exists (audio processing functions)
+        if(EXISTS "${ESPEAK_NG_DIR}/lib/libsonic.a")
+            target_link_libraries(
+                piper_phonemize
+                ${ESPEAK_NG_DIR}/lib/libsonic.a
+            )
+        endif()
+    endif()
 endif()
 
 target_compile_features(piper_phonemize PUBLIC cxx_std_17)
