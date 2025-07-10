@@ -227,6 +227,7 @@ if(NOT DEFINED ESPEAK_NG_DIR)
                 -DCMAKE_INSTALL_BINDIR=bin
                 -DCMAKE_SKIP_BUILD_RPATH=ON
                 -DCMAKE_SKIP_INSTALL_RPATH=ON
+                -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
                 # Additional iOS settings to prevent executable builds
                 -DENABLE_ASYNC=OFF
                 -DENABLE_MBROLA=OFF

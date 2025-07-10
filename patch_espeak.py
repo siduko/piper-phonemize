@@ -100,6 +100,10 @@ def patch_cmake_files():
             content = re.sub(r'add_subdirectory\s*\(\s*tests\s*\)', '', content)
             content = re.sub(r'add_subdirectory\s*\(\s*data\s*\)', '', content)
             
+            # Remove speechPlayer subdirectory - this causes C++ header issues on iOS
+            content = re.sub(r'add_subdirectory\s*\(\s*src/speechPlayer\s*\)', '', content)
+            content = re.sub(r'add_subdirectory\s*\(\s*speechPlayer\s*\)', '', content)
+            
             # Clean up multiple empty lines
             content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
             
