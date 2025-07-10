@@ -4,12 +4,13 @@ import os
 import glob
 
 def patch_cmake_files():
-    """Remove all references to espeak-ng-bin executable from CMakeLists.txt and .cmake files."""
+    """Remove all references to espeak-ng-bin executable from CMakeLists.txt and .cmake files, and fix iOS compatibility issues."""
     
-    # Find all CMakeLists.txt and .cmake files
+    # Find all CMakeLists.txt, .cmake, and .c files
     cmake_files = []
     cmake_files.extend(glob.glob('**/CMakeLists.txt', recursive=True))
     cmake_files.extend(glob.glob('**/*.cmake', recursive=True))
+    cmake_files.extend(glob.glob('**/src/libespeak-ng/spect.c', recursive=True))
     
     for cmake_file in cmake_files:
         if os.path.exists(cmake_file):
@@ -19,6 +20,33 @@ def patch_cmake_files():
                 content = f.read()
             
             original_content = content
+            
+            # Handle C source files differently
+            if cmake_file.endswith('.c'):
+                # Fix iOS endianness issues in spect.c
+                if 'spect.c' in cmake_file:
+                    # Add compatibility macros for iOS
+                    ios_compat = '''#ifdef __APPLE__
+#include <libkern/OSByteOrder.h>
+#define le16toh(x) OSSwapLittleToHostInt16(x)
+#define le32toh(x) OSSwapLittleToHostInt32(x)
+#endif
+
+'''
+                    # Insert after the first #include
+                    if '#include' in content and 'OSByteOrder.h' not in content:
+                        content = re.sub(r'(#include[^\n]*\n)', r'\1' + ios_compat, content, count=1)
+                
+                # Only write back if content changed
+                if content != original_content:
+                    with open(cmake_file, 'w') as f:
+                        f.write(content)
+                    print(f"  -> Patched successfully")
+                else:
+                    print(f"  -> No changes needed")
+                continue
+            
+            # Handle CMake files (existing logic)
             
             # Remove add_executable for espeak-ng-bin
             content = re.sub(r'add_executable\s*\(\s*espeak-ng-bin[^)]*\)', '', content, flags=re.MULTILINE | re.DOTALL)
