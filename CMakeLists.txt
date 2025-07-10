@@ -331,19 +331,26 @@ else()
     # For cross-platform builds, explicitly link additional espeak-ng dependencies
     # These libraries are built as separate static libraries but needed by espeak-ng
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR ANDROID)
-        # Link ucd library (Unicode character database functions)
-        target_link_libraries(
-            piper_phonemize
-            ${ESPEAK_NG_DIR}/lib/libucd.a
-        )
+        # Create imported targets for the espeak-ng dependencies
+        # This ensures proper build order and avoids path issues
         
-        # Link sonic library if it exists (audio processing functions)
-        if(EXISTS "${ESPEAK_NG_DIR}/lib/libsonic.a")
-            target_link_libraries(
-                piper_phonemize
-                ${ESPEAK_NG_DIR}/lib/libsonic.a
-            )
-        endif()
+        # UCD library (Unicode character database functions)
+        add_library(ucd_imported STATIC IMPORTED)
+        set_target_properties(ucd_imported PROPERTIES
+            IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/e/src/espeak_ng_external-build/src/ucd-tools/libucd.a
+        )
+        add_dependencies(ucd_imported espeak_ng_external)
+        
+        target_link_libraries(piper_phonemize ucd_imported)
+        
+        # Sonic library (audio processing functions) - only if being built
+        add_library(sonic_imported STATIC IMPORTED)
+        set_target_properties(sonic_imported PROPERTIES
+            IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/e/src/espeak_ng_external-build/libsonic.a
+        )
+        add_dependencies(sonic_imported espeak_ng_external)
+        
+        target_link_libraries(piper_phonemize sonic_imported)
     endif()
 endif()
 
