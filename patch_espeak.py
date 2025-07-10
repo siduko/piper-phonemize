@@ -79,6 +79,27 @@ def patch_cmake_files():
             content = re.sub(r'[^\n]*\$<TARGET_FILE:espeak-ng-bin>[^\n]*\n?', '', content)
             content = re.sub(r'[^\n]*\$<TARGET_NAME:espeak-ng-bin>[^\n]*\n?', '', content)
             
+            # Fix linking issues: ensure ucd library is linked to espeak-ng
+            if 'src/libespeak-ng/CMakeLists.txt' in cmake_file:
+                # Add ucd to espeak-ng target_link_libraries if not already present
+                if 'target_link_libraries' in content and 'espeak-ng' in content:
+                    # Find the target_link_libraries block for espeak-ng and ensure ucd is included
+                    if 'ucd' not in content:
+                        content = re.sub(
+                            r'(target_link_libraries\s*\(\s*espeak-ng)(\s+[^)]*)?(\))',
+                            r'\1\2 ucd\3',
+                            content,
+                            flags=re.MULTILINE | re.DOTALL
+                        )
+                elif 'add_library' in content and 'espeak-ng' in content:
+                    # If there's no target_link_libraries for espeak-ng, add one
+                    content = re.sub(
+                        r'(add_library\s*\(\s*espeak-ng[^)]*\)[^\n]*\n)',
+                        r'\1target_link_libraries(espeak-ng ucd)\n',
+                        content,
+                        flags=re.MULTILINE | re.DOTALL
+                    )
+            
             # Remove add_custom_command blocks that contain espeak-ng-bin dependencies or use ESPEAK_RUN_CMD
             # This is more complex - we need to remove entire add_custom_command blocks
             # that have espeak-ng-bin in their DEPENDS section or use ESPEAK_RUN_CMD

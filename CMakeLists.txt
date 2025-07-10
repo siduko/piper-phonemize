@@ -228,6 +228,8 @@ if(NOT DEFINED ESPEAK_NG_DIR)
                 -DCMAKE_SKIP_BUILD_RPATH=ON
                 -DCMAKE_SKIP_INSTALL_RPATH=ON
                 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+                # Force static library build with all dependencies included
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON
                 # Additional iOS settings to prevent executable builds
                 -DENABLE_ASYNC=OFF
                 -DENABLE_MBROLA=OFF
