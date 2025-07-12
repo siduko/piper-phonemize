@@ -294,7 +294,6 @@ if(NOT DEFINED ESPEAK_NG_DIR)
     add_dependencies(piper_phonemize espeak_ng_external)
 endif()
 
-
 # ---- Declare library ----
 
 target_include_directories(
@@ -334,10 +333,37 @@ else()
     # For cross-platform builds, explicitly link additional espeak-ng dependencies
     # These libraries are built as separate static libraries but needed by espeak-ng
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR ANDROID)
-        # For iOS/Android, we need to handle dependencies differently
-        # The UCD library and other dependencies should be linked directly by espeak-ng
-        # We'll let the external project handle its own linking and just ensure proper build order
-        message(STATUS "Cross-platform build detected - dependencies will be handled by espeak-ng external project")
+        # Create imported targets for the espeak-ng dependencies
+        # This ensures proper build order and avoids path issues
+        
+        if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+            # For iOS, let espeak-ng handle its own dependencies to avoid linking issues
+            message(STATUS "iOS build detected - dependencies will be handled by espeak-ng external project")
+        else()
+            # For Android, we still need to explicitly link UCD library
+            # UCD library (Unicode character database functions) - always needed
+            add_library(ucd_imported STATIC IMPORTED)
+            set_target_properties(ucd_imported PROPERTIES
+                IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/e/src/espeak_ng_external-build/src/ucd-tools/libucd.a
+            )
+            add_dependencies(ucd_imported espeak_ng_external)
+            target_link_libraries(piper_phonemize ucd_imported)
+            
+            # Sonic library (audio processing functions) - only if the library file exists
+            # This is optional and may not be built depending on espeak-ng configuration
+            set(SONIC_LIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/e/src/espeak_ng_external-build/libsonic.a)
+            if(EXISTS ${SONIC_LIB_PATH})
+                add_library(sonic_imported STATIC IMPORTED)
+                set_target_properties(sonic_imported PROPERTIES
+                    IMPORTED_LOCATION ${SONIC_LIB_PATH}
+                )
+                add_dependencies(sonic_imported espeak_ng_external)
+                target_link_libraries(piper_phonemize sonic_imported)
+                message(STATUS "Linking sonic library: ${SONIC_LIB_PATH}")
+            else()
+                message(STATUS "Sonic library not found, skipping: ${SONIC_LIB_PATH}")
+            endif()
+        endif()
     endif()
 endif()
 

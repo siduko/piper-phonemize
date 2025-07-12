@@ -6,6 +6,26 @@ import glob
 def patch_cmake_files():
     """Remove all references to espeak-ng-bin executable from CMakeLists.txt and .cmake files, and fix iOS compatibility issues."""
     
+    # Detect if this is an iOS build by checking for iOS-specific environment variables or files
+    is_ios_build = (
+        os.environ.get('CMAKE_SYSTEM_NAME') == 'iOS' or
+        os.environ.get('PLATFORM_NAME') == 'iphoneos'
+    )
+    
+    # Fallback: check if Xcode is available (but be more conservative)
+    if not is_ios_build and os.path.exists('/Applications/Xcode.app'):
+        # Only consider it iOS if we're actually in an iOS build context
+        # Check for iOS-specific build directories or files
+        if (os.path.exists('build/Release-iphoneos') or 
+            any('ios' in str(path).lower() for path in os.listdir('.') if os.path.isdir(path))):
+            is_ios_build = True
+    
+    print(f"Patch script detected iOS build: {is_ios_build}")
+    if is_ios_build:
+        print("  -> Will apply iOS-specific UCD linking patches")
+    else:
+        print("  -> Will skip iOS-specific patches (Android/other builds preserved)")
+    
     # Find all CMakeLists.txt, .cmake, and .c files
     cmake_files = []
     cmake_files.extend(glob.glob('**/CMakeLists.txt', recursive=True))
@@ -79,9 +99,9 @@ def patch_cmake_files():
             content = re.sub(r'[^\n]*\$<TARGET_FILE:espeak-ng-bin>[^\n]*\n?', '', content)
             content = re.sub(r'[^\n]*\$<TARGET_NAME:espeak-ng-bin>[^\n]*\n?', '', content)
             
-            # Fix linking issues: ensure ucd library is linked to espeak-ng
-            if 'src/libespeak-ng/CMakeLists.txt' in cmake_file:
-                # For iOS and static builds, ensure all dependencies are linked into espeak-ng
+            # Fix linking issues: ensure ucd library is linked to espeak-ng (iOS only)
+            if 'src/libespeak-ng/CMakeLists.txt' in cmake_file and is_ios_build:
+                # For iOS builds, ensure all dependencies are statically linked into espeak-ng
                 if 'target_link_libraries' in content and 'espeak-ng' in content:
                     # Find the target_link_libraries block for espeak-ng and ensure ucd is included
                     if 'ucd' not in content:
@@ -97,13 +117,13 @@ def patch_cmake_files():
                     if 'add_library' in content and 'espeak-ng' in content:
                         content = re.sub(
                             r'(add_library\s*\(\s*espeak-ng[^)]*\)[^\n]*\n)',
-                            r'\1\n# Link UCD library for iOS/static builds\ntarget_link_libraries(espeak-ng PRIVATE ucd)\n',
+                            r'\1\n# Link UCD library for iOS static builds\ntarget_link_libraries(espeak-ng PRIVATE ucd)\n',
                             content,
                             flags=re.MULTILINE | re.DOTALL
                         )
             
-            # For root CMakeLists.txt, ensure UCD subdirectory is built but executable is disabled
-            if cmake_file.endswith('CMakeLists.txt') and 'src/ucd-tools' in content:
+            # For root CMakeLists.txt, ensure UCD subdirectory is built but executable is disabled (iOS only)
+            if cmake_file.endswith('CMakeLists.txt') and 'src/ucd-tools' in content and is_ios_build:
                 # Ensure ucd-tools is built but disable any executables
                 content = re.sub(r'add_subdirectory\s*\(\s*src/ucd-tools\s*\)', 'add_subdirectory(src/ucd-tools)', content)
                 # Also patch the ucd-tools CMakeLists.txt to only build library

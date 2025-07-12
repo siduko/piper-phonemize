@@ -96,6 +96,8 @@ jobs:
           export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
           export iOS_PLATFORM=OS
           export iOS_SDK_VERSION=$(xcrun --show-sdk-version --sdk iphoneos)
+          export CMAKE_SYSTEM_NAME=iOS
+          export PLATFORM_NAME=iphoneos
           
           echo "iOS build environment:"
           echo "DEVELOPER_DIR: $DEVELOPER_DIR"
@@ -103,6 +105,8 @@ jobs:
           echo "iOS SDK Path: $(xcrun --show-sdk-path --sdk iphoneos)"
           echo "Available iOS SDKs: $(xcodebuild -showsdks | grep iOS)"
           echo "Current working directory: $(pwd)"
+          echo "CMAKE_SYSTEM_NAME: $CMAKE_SYSTEM_NAME"
+          echo "PLATFORM_NAME: $PLATFORM_NAME"
           echo "Checking for toolchain file:"
           ls -la cmake/ios.toolchain.cmake || echo "Toolchain file not found"
           
@@ -152,6 +156,10 @@ jobs:
         if [ "${{ matrix.target }}" == "iOS" ]; then
           # For iOS, use Xcode build system with verbose output
           echo "Building for iOS with Xcode..."
+          
+          # Set iOS environment variables for the patch script
+          export CMAKE_SYSTEM_NAME=iOS
+          export PLATFORM_NAME=iphoneos
           
           # Clean build directory if it exists
           if [ -d "build" ]; then
