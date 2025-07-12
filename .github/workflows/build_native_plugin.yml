@@ -1,12 +1,10 @@
 #.github/workflows/build_native_plugin.yml
 
-name: Build Cross-Platform Phonemizer Plugin
+name: Build Cross-Platform Phonemizer Plugin for Unity
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "master-unity"]
 
 jobs:
   build:
