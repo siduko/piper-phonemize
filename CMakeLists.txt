@@ -258,6 +258,9 @@ if(NOT DEFINED ESPEAK_NG_DIR)
                 -DENABLE_TESTING=OFF
                 # Set policy for option() behavior
                 -DCMAKE_POLICY_DEFAULT_CMP0077=NEW
+                # Ensure all dependencies are statically linked into the main library
+                -DCMAKE_FIND_LIBRARY_SUFFIXES=".a"
+                -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++"
             )
         endif()
     endif()
@@ -331,31 +334,10 @@ else()
     # For cross-platform builds, explicitly link additional espeak-ng dependencies
     # These libraries are built as separate static libraries but needed by espeak-ng
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR ANDROID)
-        # Create imported targets for the espeak-ng dependencies
-        # This ensures proper build order and avoids path issues
-        
-        # UCD library (Unicode character database functions) - always needed
-        add_library(ucd_imported STATIC IMPORTED)
-        set_target_properties(ucd_imported PROPERTIES
-            IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/e/src/espeak_ng_external-build/src/ucd-tools/libucd.a
-        )
-        add_dependencies(ucd_imported espeak_ng_external)
-        target_link_libraries(piper_phonemize ucd_imported)
-        
-        # Sonic library (audio processing functions) - only if the library file exists
-        # This is optional and may not be built depending on espeak-ng configuration
-        set(SONIC_LIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/e/src/espeak_ng_external-build/libsonic.a)
-        if(EXISTS ${SONIC_LIB_PATH})
-            add_library(sonic_imported STATIC IMPORTED)
-            set_target_properties(sonic_imported PROPERTIES
-                IMPORTED_LOCATION ${SONIC_LIB_PATH}
-            )
-            add_dependencies(sonic_imported espeak_ng_external)
-            target_link_libraries(piper_phonemize sonic_imported)
-            message(STATUS "Linking sonic library: ${SONIC_LIB_PATH}")
-        else()
-            message(STATUS "Sonic library not found, skipping: ${SONIC_LIB_PATH}")
-        endif()
+        # For iOS/Android, we need to handle dependencies differently
+        # The UCD library and other dependencies should be linked directly by espeak-ng
+        # We'll let the external project handle its own linking and just ensure proper build order
+        message(STATUS "Cross-platform build detected - dependencies will be handled by espeak-ng external project")
     endif()
 endif()
 

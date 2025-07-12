@@ -191,6 +191,21 @@ jobs:
             find build/e -name "CMakeLists.txt" -exec grep -l "espeak-ng-bin" {} \; | head -3 || echo "No references found"
           fi
           
+          # Build the external project first to ensure all dependencies are available
+          echo "Building external dependencies first..."
+          cmake --build build --config Release --target espeak_ng_external --verbose
+          
+          # Check what was actually built
+          echo "Checking external project build results..."
+          if [ -d "build/e/src/espeak_ng_external-build" ]; then
+            echo "Built libraries in external project:"
+            find build/e/src/espeak_ng_external-build -name "*.a" -o -name "*.dylib" -o -name "*.so" | head -10
+            echo "UCD tools directory contents:"
+            ls -la build/e/src/espeak_ng_external-build/src/ucd-tools/ 2>/dev/null || echo "UCD tools directory not found"
+          fi
+          
+          # Then build the main project
+          echo "Building main project..."
           cmake --build build --config Release --verbose -- -allowProvisioningUpdates
           
           # Check if the library was built successfully

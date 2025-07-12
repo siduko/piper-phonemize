@@ -81,7 +81,7 @@ def patch_cmake_files():
             
             # Fix linking issues: ensure ucd library is linked to espeak-ng
             if 'src/libespeak-ng/CMakeLists.txt' in cmake_file:
-                # Add ucd to espeak-ng target_link_libraries if not already present
+                # For iOS and static builds, ensure all dependencies are linked into espeak-ng
                 if 'target_link_libraries' in content and 'espeak-ng' in content:
                     # Find the target_link_libraries block for espeak-ng and ensure ucd is included
                     if 'ucd' not in content:
@@ -91,14 +91,26 @@ def patch_cmake_files():
                             content,
                             flags=re.MULTILINE | re.DOTALL
                         )
-                elif 'add_library' in content and 'espeak-ng' in content:
-                    # If there's no target_link_libraries for espeak-ng, add one
-                    content = re.sub(
-                        r'(add_library\s*\(\s*espeak-ng[^)]*\)[^\n]*\n)',
-                        r'\1target_link_libraries(espeak-ng ucd)\n',
-                        content,
-                        flags=re.MULTILINE | re.DOTALL
-                    )
+                else:
+                    # If no target_link_libraries exists, create one
+                    # Look for the add_library command and add linking after it
+                    if 'add_library' in content and 'espeak-ng' in content:
+                        content = re.sub(
+                            r'(add_library\s*\(\s*espeak-ng[^)]*\)[^\n]*\n)',
+                            r'\1\n# Link UCD library for iOS/static builds\ntarget_link_libraries(espeak-ng PRIVATE ucd)\n',
+                            content,
+                            flags=re.MULTILINE | re.DOTALL
+                        )
+            
+            # For root CMakeLists.txt, ensure UCD subdirectory is built but executable is disabled
+            if cmake_file.endswith('CMakeLists.txt') and 'src/ucd-tools' in content:
+                # Ensure ucd-tools is built but disable any executables
+                content = re.sub(r'add_subdirectory\s*\(\s*src/ucd-tools\s*\)', 'add_subdirectory(src/ucd-tools)', content)
+                # Also patch the ucd-tools CMakeLists.txt to only build library
+                if 'src/ucd-tools/CMakeLists.txt' in cmake_file:
+                    # Remove executable targets from ucd-tools if they exist
+                    content = re.sub(r'add_executable\s*\([^)]*\)', '', content, flags=re.MULTILINE | re.DOTALL)
+                    content = re.sub(r'install\s*\([^)]*TARGETS[^)]*\)', '', content, flags=re.MULTILINE | re.DOTALL)
             
             # Remove add_custom_command blocks that contain espeak-ng-bin dependencies or use ESPEAK_RUN_CMD
             # This is more complex - we need to remove entire add_custom_command blocks
