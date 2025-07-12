@@ -15,10 +15,10 @@ jobs:
           - os: windows-latest
             target: Windows
             arch: x86_64
-          - os: macos-latest
+          - os: macos-14
             target: macOS
             arch: x86_64
-          - os: macos-latest
+          - os: macos-14
             target: macOS
             arch: arm64
           - os: ubuntu-latest
@@ -27,7 +27,7 @@ jobs:
           - os: ubuntu-latest
             target: Android
             arch: armeabi-v7a
-          - os: macos-latest
+          - os: macos-14
             target: iOS
             arch: arm64
 
